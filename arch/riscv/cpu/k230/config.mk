@@ -11,8 +11,8 @@ add_firmware_head: u-boot.bin spl/u-boot-spl.bin
 	@cp spl/u-boot-spl.bin t.bin; python $(srctree)/tools/k230_image.py -i t.bin -o k230-u-boot-spl.bin -n; rm -rf t.bin
 
 	@echo "Make uboot.img"
-	@$(srctree)/tools/k230_priv_gzip -k -f u-boot.bin;
-	@$(srctree)/tools/mkimage -A riscv -O u-boot -C gzip -T firmware -a ${CONFIG_SYS_TEXT_BASE} -e ${CONFIG_SYS_TEXT_BASE} -n uboot -d u-boot.bin.gz u-boot.img
+	@$(srctree)/tools/k230_priv_gzip -k -f u-boot.bin
+	@$(objtree)/tools/mkimage -A riscv -O u-boot -C gzip -T firmware -a ${CONFIG_SYS_TEXT_BASE} -e ${CONFIG_SYS_TEXT_BASE} -n uboot -d u-boot.bin.gz u-boot.img
 
 	@echo "Add header to u-boot.img"
 	@cp u-boot.img t.bin;python $(srctree)/tools/k230_image.py -i t.bin -o k230-u-boot.img -n; rm -rf t.bin
