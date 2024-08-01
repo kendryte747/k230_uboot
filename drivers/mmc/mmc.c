@@ -513,7 +513,11 @@ static int mmc_go_idle(struct mmc *mmc)
 	struct mmc_cmd cmd;
 	int err;
 
+#if defined (CONFIG_MMC_SDHCI_SNPS)
+	udelay(4000);
+#else
 	udelay(1000);
+#endif
 
 	cmd.cmdidx = MMC_CMD_GO_IDLE_STATE;
 	cmd.cmdarg = 0;

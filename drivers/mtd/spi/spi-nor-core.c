@@ -279,6 +279,8 @@ static void spi_nor_setup_op(const struct spi_nor *nor,
 		ext = spi_nor_get_cmd_ext(nor, op);
 		op->cmd.opcode = (op->cmd.opcode << 8) | ext;
 		op->cmd.nbytes = 2;
+	} else {
+		op->cmd.nbytes = 1;
 	}
 }
 
@@ -298,6 +300,10 @@ static int spi_nor_read_reg(struct spi_nor *nor, u8 code, u8 *val, int len)
 					  SPI_MEM_OP_NO_ADDR,
 					  SPI_MEM_OP_NO_DUMMY,
 					  SPI_MEM_OP_DATA_IN(len, NULL, 0));
+	if (nor->reg_proto == SNOR_PROTO_8_8_8_DTR) {
+		op.dummy.nbytes = 8;
+	}
+
 	int ret;
 
 	spi_nor_setup_op(nor, &op, nor->reg_proto);
@@ -648,6 +654,7 @@ static int set_4byte(struct spi_nor *nor, const struct flash_info *info,
 	case SNOR_MFR_ISSI:
 	case SNOR_MFR_MACRONIX:
 	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_GD:
 		if (need_wren)
 			write_enable(nor);
 
@@ -1835,7 +1842,7 @@ static int spansion_quad_enable_volatile(struct spi_nor *nor, u32 addr_base,
 }
 #endif
 
-#if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND)
+#if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND) || defined(CONFIG_SPI_FLASH_GIGADEVICE)
 /*
  * Write status Register and configuration register with 2 bytes
  * The first byte will be written to the status register, while the
@@ -2722,7 +2729,7 @@ static int spi_nor_init_params(struct spi_nor *nor,
 	if (info->flags & SPI_NOR_OCTAL_DTR_READ) {
 		params->hwcaps.mask |= SNOR_HWCAPS_READ_8_8_8_DTR;
 		spi_nor_set_read_settings(&params->reads[SNOR_CMD_READ_8_8_8_DTR],
-					  0, 20, SPINOR_OP_READ_FAST,
+					  0, 16, SPINOR_OP_READ_FAST,
 					  SNOR_PROTO_8_8_8_DTR);
 	}
 
@@ -3575,6 +3582,76 @@ static struct spi_nor_fixups mt35xu512aba_fixups = {
 };
 #endif /* CONFIG_SPI_FLASH_MT35XU */
 
+static int spi_nor_gd25lx_octal_dtr_enable(struct spi_nor *nor)
+{
+	struct spi_mem_op op;
+	u8 buf;
+	u8 addr_width = 3;
+	int ret;
+
+	nor->read_dummy = 16;
+
+	ret = write_enable(nor);
+	if (ret)
+		return ret;
+
+	buf = OPI_DTR_WITH_DQS;
+	op = (struct spi_mem_op)
+		SPI_MEM_OP(SPI_MEM_OP_CMD(GD_OP_MT_WR_ANY_REG, 1),
+			   SPI_MEM_OP_ADDR(addr_width, GD_REG_CFR0V, 1),
+			   SPI_MEM_OP_NO_DUMMY,
+			   SPI_MEM_OP_DATA_OUT(1, &buf, 1));
+	ret = spi_mem_exec_op(nor->spi, &op);
+	if (ret) {
+		dev_err(nor->dev, "Failed to enable octal DTR mode\n");
+		return ret;
+	}
+
+	nor->reg_proto = SNOR_PROTO_8_8_8_DTR;
+
+	nor->flags |= SNOR_F_SOFT_RESET;
+	return 0;
+}
+
+static void gd25lx_default_init(struct spi_nor *nor)
+{
+	nor->octal_dtr_enable = spi_nor_gd25lx_octal_dtr_enable;
+}
+
+static void gd25lx_post_sfdp_fixup(struct spi_nor *nor,
+					 struct spi_nor_flash_parameter *params)
+{
+	params->hwcaps.mask |= SNOR_HWCAPS_PP_8_8_8_DTR;
+
+	nor->cmd_ext_type = SPI_NOR_EXT_REPEAT;
+	params->rdsr_dummy = 8;
+	params->rdsr_addr_nbytes = 0;
+
+	/*
+	 * The BFPT quad enable field is set to a reserved value so the quad
+	 * enable function is ignored by spi_nor_parse_bfpt(). Make sure we
+	 * disable it.
+	 */
+	params->quad_enable = NULL;
+}
+
+static struct spi_nor_fixups gd25lx_fixups = {
+	.default_init = gd25lx_default_init,
+	.post_sfdp = gd25lx_post_sfdp_fixup,
+};
+
+static void gd25lq_post_sfdp_fixup(struct spi_nor *nor,
+					 struct spi_nor_flash_parameter *params)
+{
+#if CONFIG_IS_ENABLED(SPI_FLASH_SFDP_SUPPORT)
+	params->quad_enable = spansion_no_read_cr_quad_enable;
+#endif
+}
+
+static struct spi_nor_fixups gd25lq_fixups = {
+	.post_sfdp = gd25lq_post_sfdp_fixup,
+};
+
 #if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
 /**
  * spi_nor_macronix_octal_dtr_enable() - Enable octal DTR on Macronix flashes.
@@ -3669,8 +3746,8 @@ static int spi_nor_octal_dtr_enable(struct spi_nor *nor)
 	      nor->write_proto == SNOR_PROTO_8_8_8_DTR))
 		return 0;
 
-	if (!(nor->flags & SNOR_F_IO_MODE_EN_VOLATILE))
-		return 0;
+	// if (!(nor->flags & SNOR_F_IO_MODE_EN_VOLATILE))
+	// 	return 0;
 
 	ret = nor->octal_dtr_enable(nor);
 	if (ret)
@@ -3785,6 +3862,35 @@ static int spi_nor_soft_reset(struct spi_nor *nor)
 	 */
 	udelay(SPI_NOR_SRST_SLEEP_LEN);
 
+	op = (struct spi_mem_op)SPI_MEM_OP(SPI_MEM_OP_CMD(SPINOR_OP_SRSTEN, 0),
+			SPI_MEM_OP_NO_DUMMY,
+			SPI_MEM_OP_NO_ADDR,
+			SPI_MEM_OP_NO_DATA);
+	spi_nor_setup_op(nor, &op, SNOR_PROTO_1_1_1);
+	ret = spi_mem_exec_op(nor->spi, &op);
+	if (ret) {
+		dev_warn(nor->dev, "Software reset enable failed: %d\n", ret);
+		goto out;
+	}
+
+	op = (struct spi_mem_op)SPI_MEM_OP(SPI_MEM_OP_CMD(SPINOR_OP_SRST, 0),
+			SPI_MEM_OP_NO_DUMMY,
+			SPI_MEM_OP_NO_ADDR,
+			SPI_MEM_OP_NO_DATA);
+	spi_nor_setup_op(nor, &op, SNOR_PROTO_1_1_1);
+	ret = spi_mem_exec_op(nor->spi, &op);
+	if (ret) {
+		dev_warn(nor->dev, "Software reset failed: %d\n", ret);
+		goto out;
+	}
+
+	/*
+	 * Software Reset is not instant, and the delay varies from flash to
+	 * flash. Looking at a few flashes, most range somewhere below 100
+	 * microseconds. So, wait for 200ms just to be sure.
+	 */
+	udelay(SPI_NOR_SRST_SLEEP_LEN);
+
 out:
 	nor->cmd_ext_type = ext;
 	return ret;
@@ -3835,6 +3941,13 @@ void spi_nor_set_fixups(struct spi_nor *nor)
 #if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
 	nor->fixups = &macronix_octal_fixups;
 #endif /* SPI_FLASH_MACRONIX */
+
+#ifdef CONFIG_IS_ENABLED(SPI_FLASH_GIGADEVICE)
+	if (!strcmp(nor->info->name, "gd25lx256e"))
+		nor->fixups = &gd25lx_fixups;
+	if (!strcmp(nor->info->name, "gd25lq256d"))
+		nor->fixups = &gd25lq_fixups;
+#endif
 }
 
 int spi_nor_scan(struct spi_nor *nor)

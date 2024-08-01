@@ -29,6 +29,7 @@
 #define SNOR_MFR_SST		CFI_MFR_SST
 #define SNOR_MFR_WINBOND	0xef /* Also used by some Spansion */
 #define SNOR_MFR_CYPRESS	0x34
+#define SNOR_MFR_GD			0xc8
 
 /*
  * Note on opcode nomenclature: some opcodes have a format like
@@ -152,6 +153,20 @@
 #define SPINOR_REG_MT_CFR0V	0x00	/* For setting octal DTR mode */
 #define SPINOR_REG_MT_CFR1V	0x01	/* For setting dummy cycles */
 #define SPINOR_MT_OCT_DTR	0xe7	/* Enable Octal DTR with DQS. */
+
+#define GD_OP_MT_RD_ANY_REG	0x85	/* Read volatile register */
+#define GD_OP_MT_WR_ANY_REG	0x81	/* Write volatile register */
+#define GD_REG_CFR0V		0x00
+#define GD_REG_CFR1V		0x01
+
+typedef enum {
+    SPI_WITH_DQS = 0xFF,
+    SPI_WITHOUT_DQS   = 0xDF,
+    OPI_DTR_WITH_DQS   = 0xE7,
+    OPI_DTR_WITHOUT_DQS = 0xC7,
+    OPI_STR_WITH_DQS   = 0xB7,
+    OPI_STR_WITHOUT_DQS = 0x97
+} GD_IO_MODE;
 
 /* Status Register bits. */
 #define SR_WIP			BIT(0)	/* Write in progress */

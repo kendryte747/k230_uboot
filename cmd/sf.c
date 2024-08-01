@@ -161,6 +161,60 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 	return 0;
 }
 
+static int do_spi_flash_remove(int argc, char *const argv[])
+{
+	unsigned int bus = CONFIG_SF_DEFAULT_BUS;
+	unsigned int cs = CONFIG_SF_DEFAULT_CS;
+	/* In DM mode, defaults speed and mode will be taken from DT */
+	unsigned int speed = CONFIG_SF_DEFAULT_SPEED;
+	unsigned int mode = CONFIG_SF_DEFAULT_MODE;
+	char *endp;
+	bool use_dt = true;
+#if CONFIG_IS_ENABLED(DM_SPI_FLASH)
+	struct udevice *new, *bus_dev;
+	int ret;
+#else
+	struct spi_flash *new;
+#endif
+
+	if (argc >= 2) {
+		cs = simple_strtoul(argv[1], &endp, 0);
+		if (*argv[1] == 0 || (*endp != 0 && *endp != ':'))
+			return -1;
+		if (*endp == ':') {
+			if (endp[1] == 0)
+				return -1;
+
+			bus = cs;
+			cs = simple_strtoul(endp + 1, &endp, 0);
+			if (*endp != 0)
+				return -1;
+		}
+	}
+
+	if (argc >= 3) {
+		speed = simple_strtoul(argv[2], &endp, 0);
+		if (*argv[2] == 0 || *endp != 0)
+			return -1;
+		use_dt = false;
+	}
+	if (argc >= 4) {
+		mode = hextoul(argv[3], &endp);
+		if (*argv[3] == 0 || *endp != 0)
+			return -1;
+		use_dt = false;
+	}
+
+	/* Remove the old device, otherwise probe will just be a nop */
+	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
+
+	device_remove(new, DM_REMOVE_NORMAL);
+
+	flash = NULL;
+
+	return 0;
+}
+
 /**
  * Write a block of data to SPI flash, first checking if it is different from
  * what is already there.
@@ -592,6 +646,11 @@ static int do_spi_flash(struct cmd_tbl *cmdtp, int flag, int argc,
 		return 1;
 	}
 
+	if (strcmp(cmd, "remove") == 0) {
+		ret = do_spi_flash_remove(argc, argv);
+		goto done;
+	}
+
 	if (strcmp(cmd, "read") == 0 || strcmp(cmd, "write") == 0 ||
 	    strcmp(cmd, "update") == 0)
 		ret = do_spi_flash_read_write(argc, argv);
@@ -633,6 +692,7 @@ static const char long_help[] =
 #ifdef CONFIG_CMD_SF_TEST
 	"\nsf test offset len		- run a very basic destructive test"
 #endif
+	"\nsf remove		- remove/reset device"
 #endif /* CONFIG_SYS_LONGHELP */
 	;
 

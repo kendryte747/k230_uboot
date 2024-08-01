@@ -616,6 +616,13 @@ config GZIP
 	help
 	  This enables support for GZIP compression algorithm.
 
+config K230_GZIP
+	bool "Enable K230 gzip decompression accelerate engine"
+	depends on GZIP
+	default y if KENDRYTE_K230
+	help
+		This enables K230 accelerate engine for GZIP decompression.
+
 config ZLIB_UNCOMPRESS
 	bool "Enables zlib's uncompress() functionality"
 	help
@@ -676,6 +683,11 @@ config SPL_GZIP
 	select SPL_ZLIB
 	help
 	  This enables support for the GZIP compression algorithm for SPL boot.
+
+config SPL_K230_GZIP
+	bool
+	def_bool y
+	depends on SPL_GZIP
 
 config SPL_ZLIB
 	bool

@@ -104,8 +104,8 @@
 #define CSR_SSTATUS		0x100
 #define CSR_SIE			0x104
 #define CSR_STVEC		0x105
-#define CSR_SCOUNTEREN		0x106
-#define CSR_SSCRATCH		0x140
+#define CSR_SCOUNTEREN	0x106
+#define CSR_SSCRATCH	0x140
 #define CSR_SEPC		0x141
 #define CSR_SCAUSE		0x142
 #define CSR_STVAL		0x143
@@ -120,13 +120,13 @@
 #define CSR_MIE			0x304
 #define CSR_MTVEC		0x305
 #ifdef CONFIG_RISCV_PRIV_1_9
-#define CSR_MUCOUNTEREN         0x320
-#define CSR_MSCOUNTEREN         0x321
-#define CSR_MHCOUNTEREN         0x322
+#define CSR_MUCOUNTEREN	0x320
+#define CSR_MSCOUNTEREN	0x321
+#define CSR_MHCOUNTEREN	0x322
 #else
-#define CSR_MCOUNTEREN		0x306
+#define CSR_MCOUNTEREN	0x306
 #endif
-#define CSR_MSCRATCH		0x340
+#define CSR_MSCRATCH	0x340
 #define CSR_MEPC		0x341
 #define CSR_MCAUSE		0x342
 #define CSR_MTVAL		0x343
@@ -141,8 +141,20 @@
 #endif
 #define CSR_CYCLEH		0xc80
 #define CSR_TIMEH		0xc81
-#define CSR_INSTRETH		0xc82
+#define CSR_INSTRETH	0xc82
 #define CSR_MHARTID		0xf14
+
+#define CSR_SMPEN		0x7f3
+#define CSR_MTEE		0x7f4
+#define CSR_MCOR        0x7c2
+#define CSR_MHCR        0x7c1
+#define CSR_MCCR2       0x7c3
+#define CSR_MHINT       0x7c5
+#define CSR_MHINT2      0x7cb
+#define CSR_MXSTATUS    0x7c0
+#define CSR_PLIC_BASE   0xfc1
+
+#define sync_is()   asm volatile (".long 0x01b0000b")
 
 #ifndef __ASSEMBLY__
 

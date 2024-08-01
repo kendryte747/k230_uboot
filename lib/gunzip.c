@@ -74,6 +74,29 @@ int gzip_parse_header(const unsigned char *src, unsigned long len)
 
 int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp)
 {
+#if defined (CONFIG_K230_GZIP)
+extern int k230_priv_unzip(void *dst, int dstlen, unsigned char *src,
+                    unsigned long *lenp);
+
+	char *pcm = (char *)(src + 2);
+	unsigned int length = 0;
+	int ret = 0;
+
+	if (*pcm == 0x09) {
+		*pcm = 0x08;
+
+		length = le32_to_cpu(*(u32 *)(src + (*lenp) - 4));
+		if (length > dstlen) {
+			puts("Error: k230 private gunzip out of the dest length\n");
+			return -4;
+		}
+		ret = k230_priv_unzip(dst, length, src, lenp);
+		*lenp = length;
+
+		return ret;
+	}
+#endif
+
 	int offset = gzip_parse_header(src, *lenp);
 
 	if (offset < 0)

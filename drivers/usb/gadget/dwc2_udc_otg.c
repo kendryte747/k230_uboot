@@ -41,7 +41,7 @@
 #include <asm/unaligned.h>
 #include <asm/io.h>
 
-#include <asm/mach-types.h>
+#include <asm/types.h>
 
 #include <power/regulator.h>
 
@@ -455,7 +455,12 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 {
 	/* 2. Soft-reset OTG Core and then unreset again. */
 	int i;
-	unsigned int uTemp = writel(CORE_SOFT_RESET, &reg->grstctl);
+	unsigned int uTemp;
+
+	writel(CORE_SOFT_RESET, &reg->grstctl);
+	udelay(100);
+	writel(0, &reg->grstctl);
+
 	uint32_t dflt_gusbcfg;
 	uint32_t rx_fifo_sz, tx_fifo_sz, np_tx_fifo_sz;
 	u32 max_hw_ep;
@@ -1072,7 +1077,7 @@ static int dwc2_udc_otg_clk_init(struct udevice *dev,
 	int ret;
 
 	ret = clk_get_bulk(dev, clks);
-	if (ret == -ENOSYS)
+	if (ret == -ENOSYS || ret == -ENOENT)
 		return 0;
 
 	if (ret)
@@ -1106,6 +1111,15 @@ static int dwc2_udc_otg_probe(struct udevice *dev)
 	ret = dwc2_phy_setup(dev, &priv->phys);
 	if (ret)
 		return ret;
+
+    // kendryte
+    #define USB0_TEST_CTL3 (0x9158507cU)
+    #define USB1_TEST_CTL3 (0x9158509cU)
+    #define USB_DMPULLDOWN0 	(1<<8)
+    #define USB_DPPULLDOWN0 	(1<<9)
+    u32 usb_test_ctl3 = readl((usbotg_reg == 0x91500000)?USB0_TEST_CTL3:USB1_TEST_CTL3);
+    usb_test_ctl3 &= ~(USB_DMPULLDOWN0 | USB_DPPULLDOWN0);
+    writel(usb_test_ctl3, (usbotg_reg == 0x91500000)?USB0_TEST_CTL3:USB1_TEST_CTL3);
 
 	if (plat->activate_stm_id_vb_detection) {
 		if (CONFIG_IS_ENABLED(DM_REGULATOR) &&

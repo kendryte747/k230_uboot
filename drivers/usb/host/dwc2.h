@@ -51,7 +51,9 @@ struct dwc2_core_regs {
 	u32			ghwcfg3;
 	u32			ghwcfg4;	/* 0x050 */
 	u32			glpmcfg;
-	u32			_pad_0x58_0x9c[42];
+	u32			gpwrdn;
+	u32			gdfifocfg;
+	u32			_pad_0x60_0x9c[40];
 	u32			hptxfsiz;	/* 0x100 */
 	u32			dptxfsiz_dieptxf[15];
 	u32			_pad_0x140_0x3fc[176];
@@ -207,6 +209,10 @@ struct dwc2_core_regs {
 #define DWC2_GRSTCTL_TXFFLSH_OFFSET			5
 #define DWC2_GRSTCTL_TXFNUM_MASK			(0x1F << 6)
 #define DWC2_GRSTCTL_TXFNUM_OFFSET			6
+
+#define DWC2_GRSTCTL_CSFTRST_DONE				(1 << 29)
+#define DWC2_GRSTCTL_CSFTRST_DONE_OFFSET			29
+
 #define DWC2_GRSTCTL_DMAREQ				(1 << 30)
 #define DWC2_GRSTCTL_DMAREQ_OFFSET			30
 #define DWC2_GRSTCTL_AHBIDLE				(1 << 31)
@@ -480,6 +486,12 @@ struct dwc2_core_regs {
 #define DWC2_HWCFG4_DESC_DMA_OFFSET			30
 #define DWC2_HWCFG4_DESC_DMA_DYN			(1 << 31)
 #define DWC2_HWCFG4_DESC_DMA_DYN_OFFSET			31
+
+#define DWC2_GDFIFOCFG_EPINFOBASE_MASK	(0xffff << 16)
+#define DWC2_GDFIFOCFG_EPINFOBASE_OFFSET	16
+#define DWC2_GDFIFOCFG_GDFIFOCFG_MASK	(0xffff << 0)
+#define DWC2_GDFIFOCFG_GDFIFOCFG_OFFSET	0
+
 #define DWC2_HCFG_FSLSPCLKSEL_30_60_MHZ			0
 #define DWC2_HCFG_FSLSPCLKSEL_48_MHZ			1
 #define DWC2_HCFG_FSLSPCLKSEL_6_MHZ			2
@@ -735,6 +747,7 @@ struct dwc2_core_regs {
 #define DWC2_PCGCCTL_DEEP_SLEEP_OFFSET			7
 #define DWC2_SNPSID_DEVID_VER_2xx			(0x4f542 << 12)
 #define DWC2_SNPSID_DEVID_VER_3xx			(0x4f543 << 12)
+#define DWC2_SNPSID_DEVID_VER_4xx			(0x4f544 << 12)
 #define DWC2_SNPSID_DEVID_MASK				(0xfffff << 12)
 #define DWC2_SNPSID_DEVID_OFFSET			12
 
@@ -764,9 +777,9 @@ struct dwc2_core_regs {
 #undef DWC2_DFLT_SPEED_FULL		/* Do not force DWC2 to FS */
 #define DWC2_ENABLE_DYNAMIC_FIFO		/* Runtime FIFO size detect */
 #define DWC2_MAX_CHANNELS		16	/* Max # of EPs */
-#define DWC2_HOST_RX_FIFO_SIZE		(516 + DWC2_MAX_CHANNELS)
-#define DWC2_HOST_NPERIO_TX_FIFO_SIZE	0x100	/* nPeriodic TX FIFO */
-#define DWC2_HOST_PERIO_TX_FIFO_SIZE	0x200	/* Periodic TX FIFO */
+#define DWC2_HOST_RX_FIFO_SIZE		1064//(516 + DWC2_MAX_CHANNELS)
+#define DWC2_HOST_NPERIO_TX_FIFO_SIZE	1024//0x100	/* nPeriodic TX FIFO */
+#define DWC2_HOST_PERIO_TX_FIFO_SIZE	768//0x200	/* Periodic TX FIFO */
 #define DWC2_MAX_TRANSFER_SIZE		65535
 #define DWC2_MAX_PACKET_COUNT		511
 

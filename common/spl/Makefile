@@ -15,9 +15,18 @@ obj-$(CONFIG_$(SPL_TPL_)NOR_SUPPORT) += spl_nor.o
 obj-$(CONFIG_$(SPL_TPL_)XIP_SUPPORT) += spl_xip.o
 obj-$(CONFIG_$(SPL_TPL_)YMODEM_SUPPORT) += spl_ymodem.o
 ifndef CONFIG_SPL_UBI
-obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += spl_nand.o
+# obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += spl_nand.o
 obj-$(CONFIG_$(SPL_TPL_)ONENAND_SUPPORT) += spl_onenand.o
 endif
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/core.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/bbt.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/spi/core.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/spi/winbond.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/spi/gigadevice.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/spi/macronix.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/spi/micron.o
+obj-$(CONFIG_$(SPL_TPL_)NAND_SUPPORT) += ../../drivers/mtd/nand/spi/toshiba.o
+obj-y += spl_spinand.o
 obj-$(CONFIG_$(SPL_TPL_)UBI) += spl_ubi.o
 obj-$(CONFIG_$(SPL_TPL_)NET) += spl_net.o
 obj-$(CONFIG_$(SPL_TPL_)MMC) += spl_mmc.o

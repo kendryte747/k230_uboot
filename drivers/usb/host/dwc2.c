@@ -3,6 +3,8 @@
  * Copyright (C) 2012 Oleksandr Tymoshenko <gonzo@freebsd.org>
  * Copyright (C) 2014 Marek Vasut <marex@denx.de>
  */
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 
 #include <common.h>
 #include <clk.h>
@@ -168,11 +170,12 @@ static void dwc_otg_core_reset(struct udevice *dev,
 
 	/* Core Soft Reset */
 	writel(DWC2_GRSTCTL_CSFTRST, &regs->grstctl);
-	ret = wait_for_bit_le32(&regs->grstctl, DWC2_GRSTCTL_CSFTRST,
-				false, 1000, false);
+	ret = wait_for_bit_le32(&regs->grstctl, DWC2_GRSTCTL_CSFTRST_DONE,
+				true, 1000, false);
 	if (ret)
 		dev_info(dev, "%s: Timeout!\n", __func__);
-
+	udelay(100);
+	writel(0, &regs->grstctl);
 	/*
 	 * Wait for core to come out of reset.
 	 * NOTE: This long sleep is _very_ important, otherwise the core will
@@ -249,6 +252,7 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 {
 	uint32_t nptxfifosize = 0;
 	uint32_t ptxfifosize = 0;
+	uint16_t epinfobase, gdfifocfg;
 	uint32_t hprt0 = 0;
 	int i, ret, num_channels;
 
@@ -283,6 +287,9 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 		writel(ptxfifosize, &regs->hptxfsiz);
 	}
 #endif
+	gdfifocfg = readl(&regs->ghwcfg3) >> 16;
+	epinfobase = DWC2_HOST_RX_FIFO_SIZE+DWC2_HOST_NPERIO_TX_FIFO_SIZE+DWC2_HOST_PERIO_TX_FIFO_SIZE;
+	writel((epinfobase<<DWC2_GDFIFOCFG_EPINFOBASE_OFFSET) | (gdfifocfg & DWC2_GDFIFOCFG_GDFIFOCFG_MASK), &regs->gdfifocfg);
 
 	/* Clear Host Set HNP Enable in the OTG Control Register */
 	clrbits_le32(&regs->gotgctl, DWC2_GOTGCTL_HSTSETHNPEN);
@@ -309,8 +316,8 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 				DWC2_HCCHAR_CHEN | DWC2_HCCHAR_CHDIS);
 		ret = wait_for_bit_le32(&regs->hc_regs[i].hcchar,
 					DWC2_HCCHAR_CHEN, false, 1000, false);
-		if (ret)
-			dev_info(dev, "%s: Timeout!\n", __func__);
+		// if (ret)
+		// 	dev_info(dev, "%s: Timeout!\n", __func__);
 	}
 
 	/* Turn on the vbus power. */
@@ -322,6 +329,15 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 			hprt0 |= DWC2_HPRT0_PRTPWR;
 			writel(hprt0, &regs->hprt0);
 		}
+
+        // kendryte
+        #define USB0_TEST_CTL3 (0x9158507cU)
+        #define USB1_TEST_CTL3 (0x9158509cU)
+        #define USB_DMPULLDOWN0 	(1<<8)
+        #define USB_DPPULLDOWN0 	(1<<9)
+        u32 usb_test_ctl3 = readl((regs == 0x91500000)?USB0_TEST_CTL3:USB1_TEST_CTL3);
+        usb_test_ctl3 |= (USB_DMPULLDOWN0 | USB_DPPULLDOWN0);
+        writel(usb_test_ctl3, (regs == 0x91500000)?USB0_TEST_CTL3:USB1_TEST_CTL3);
 	}
 
 	if (dev)
@@ -407,7 +423,7 @@ static void dwc_otg_core_init(struct udevice *dev)
 	 * immediately after setting phyif.
 	 */
 	usbcfg &= ~(DWC2_GUSBCFG_ULPI_UTMI_SEL | DWC2_GUSBCFG_PHYIF);
-	usbcfg |= DWC2_PHY_TYPE << DWC2_GUSBCFG_ULPI_UTMI_SEL_OFFSET;
+	// usbcfg |= DWC2_PHY_TYPE << DWC2_GUSBCFG_ULPI_UTMI_SEL_OFFSET;
 
 	if (usbcfg & DWC2_GUSBCFG_ULPI_UTMI_SEL) {	/* ULPI interface */
 #ifdef DWC2_PHY_ULPI_DDR
@@ -1154,7 +1170,7 @@ static int dwc2_reset(struct udevice *dev)
 
 	ret = reset_get_bulk(dev, &priv->resets);
 	if (ret) {
-		dev_warn(dev, "Can't get reset: %d\n", ret);
+		// dev_warn(dev, "Can't get reset: %d\n", ret);
 		/* Return 0 if error due to !CONFIG_DM_RESET and reset
 		 * DT property is not present.
 		 */
@@ -1192,7 +1208,8 @@ static int dwc2_init_common(struct udevice *dev, struct dwc2_priv *priv)
 		 snpsid >> 12 & 0xf, snpsid & 0xfff);
 
 	if ((snpsid & DWC2_SNPSID_DEVID_MASK) != DWC2_SNPSID_DEVID_VER_2xx &&
-	    (snpsid & DWC2_SNPSID_DEVID_MASK) != DWC2_SNPSID_DEVID_VER_3xx) {
+	    (snpsid & DWC2_SNPSID_DEVID_MASK) != DWC2_SNPSID_DEVID_VER_3xx &&
+	    (snpsid & DWC2_SNPSID_DEVID_MASK) != DWC2_SNPSID_DEVID_VER_4xx) {
 		dev_info(dev, "SNPSID invalid (not DWC2 OTG device): %08x\n",
 			 snpsid);
 		return -ENODEV;
@@ -1427,6 +1444,7 @@ static int dwc2_usb_probe(struct udevice *dev)
 	int ret;
 
 	bus_priv->desc_before_addr = true;
+	writel(0x1, 0x91108030);
 
 	ret = dwc2_clk_init(dev);
 	if (ret)
@@ -1488,3 +1506,5 @@ U_BOOT_DRIVER(usb_dwc2) = {
 	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
 };
 #endif
+
+#pragma GCC pop_options
