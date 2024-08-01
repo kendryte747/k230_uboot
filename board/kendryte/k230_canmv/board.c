@@ -28,22 +28,15 @@ int ddr_init_training(void) {
   return 0;
 }
 
+int board_early_init_f(void) {
+  /* force set boot medium to sdio1 */
+  g_boot_medium = BOOT_MEDIUM_SDIO1;
+  return 0;
+}
+
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void) {
   ofnode node;
-
-  node = ofnode_by_compatible(ofnode_null(), "kendryte,k230_canmv_v2");
-  if (ofnode_valid(node)) {
-#define SDHCI_EMMC_BASE 0x91580000
-#define SDHCI_EMMC_CTRL_R 0x52C
-#define EMMC_RST_N_OE 3
-#define EMMC_RST_N 2
-    u32 wifi_regon_ctrl = readl((void *)(SDHCI_EMMC_BASE + SDHCI_EMMC_CTRL_R));
-    wifi_regon_ctrl |= (1 << EMMC_RST_N_OE);
-    wifi_regon_ctrl &= ~(1 << EMMC_RST_N);
-    mdelay(10);
-    wifi_regon_ctrl |= (1 << EMMC_RST_N);
-  }
 
   node = ofnode_by_compatible(ofnode_null(), "kendryte,k230_canmv");
   if (ofnode_valid(node)) {

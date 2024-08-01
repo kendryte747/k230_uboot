@@ -50,6 +50,10 @@
 	status = "okay";
 };
 
+&usbotg0 {
+	status = "okay";
+};
+
 &iomux {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins>;

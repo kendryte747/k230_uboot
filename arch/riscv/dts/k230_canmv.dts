@@ -55,6 +55,10 @@
 	status = "okay";
 };
 
+&usbotg0 {
+	status = "okay";
+};
+
 &usbotg1 {
 	status = "okay";
 };
