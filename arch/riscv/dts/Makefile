@@ -9,6 +9,7 @@ dtb-$(CONFIG_TARGET_SIFIVE_UNMATCHED) += hifive-unmatched-a00.dtb
 dtb-$(CONFIG_TARGET_SIPEED_MAIX) += k210-maix-bit.dtb
 dtb-$(TARGET_K230_CANMV) += k230_canmv.dtb
 dtb-$(TARGET_K230_CANMV_01STUDIO) += k230_canmv_01studio.dtb
+dtb-$(TARGET_K230_CANMV_DONGSHANPI) += k230_canmv_dongshanpi.dtb
 
 include $(srctree)/scripts/Makefile.dts
 
