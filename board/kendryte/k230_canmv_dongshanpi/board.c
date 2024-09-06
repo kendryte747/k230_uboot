@@ -30,8 +30,6 @@ int ddr_init_training(void)
 }
 
 int board_early_init_f(void) {
-  /* force set boot medium to sdio0 */
-  g_boot_medium = BOOT_MEDIUM_SDIO0;
   return 0;
 }
 

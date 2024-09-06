@@ -157,7 +157,7 @@ __weak ulong get_blk_start_by_boot_firmre_type(en_boot_sys_t sys) {
     blk_s = RTT_SYS_IN_IMG_OFF_SEC;
     break;
   case BOOT_SYS_UBOOT:
-    blk_s = CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR;
+    blk_s = UBOOT_SYS_IN_IMG_OFF_SEC;
     break;
   default:
     break;
