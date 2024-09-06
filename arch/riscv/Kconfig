@@ -47,6 +47,10 @@ config TARGET_K230D_CANMV_BPI_ZERO
 	bool "Support k230D_CANMV(BPI-ZERO)"
 	select SYS_CACHE_SHIFT_6
 
+config TARGET_K230_CANMV_DONGSHANPI
+	bool "Support k230_CANMV(dongshanpi)"
+	select SYS_CACHE_SHIFT_6	
+
 endchoice
 
 config SYS_ICACHE_OFF
@@ -85,6 +89,7 @@ source "board/kendryte/k230_canmv/Kconfig"
 source "board/kendryte/k230_canmv_01studio/Kconfig"
 source "board/kendryte/k230d_canmv_bpi_zero/Kconfig"
 source "board/kendryte/k230_canmv_v3p0/Kconfig"
+source "board/kendryte/k230_canmv_dongshanpi/Kconfig"
 
 # platform-specific options below
 source "arch/riscv/cpu/ax25/Kconfig"
