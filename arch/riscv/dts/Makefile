@@ -8,6 +8,8 @@ dtb-$(CONFIG_TARGET_SIFIVE_UNLEASHED) += hifive-unleashed-a00.dtb
 dtb-$(CONFIG_TARGET_SIFIVE_UNMATCHED) += hifive-unmatched-a00.dtb
 dtb-$(CONFIG_TARGET_SIPEED_MAIX) += k210-maix-bit.dtb
 
+dtb-$(CONFIG_TARGET_K230_BURNTOOL) += k230_burntool.dtb # just for burntool
+
 dtb-$(CONFIG_TARGET_K230_CANMV) += k230_canmv.dtb
 dtb-$(CONFIG_TARGET_K230_CANMV_V3P0) += k230_canmv_v3p0.dtb
 dtb-$(CONFIG_TARGET_K230_CANMV_V3P0) += k230_canmv_lckfb.dtb	# lckfb use same target.
