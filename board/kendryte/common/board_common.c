@@ -183,4 +183,45 @@ static int do_k230_boot(struct cmd_tbl *cmdtp, int flag, int argc,
 
 U_BOOT_CMD_COMPLETE(k230_boot, 6, 0, do_k230_boot, NULL, K230_BOOT_HELP, NULL);
 
+typedef void (*func_app_entry)(void);
+static int k230_boot_baremetal(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
+{
+	static	ulong	boot_address , boot_size, boot_cpu;
+
+	if (argc < 4)
+		return CMD_RET_USAGE;
+
+	boot_cpu = hextoul(argv[1], NULL);
+	boot_address = hextoul(argv[2], NULL);
+	boot_size = hextoul(argv[3], NULL);
+
+	flush_cache(boot_address, boot_size);
+	printf("boot_cpu = %ld boot_address = 0x%lx boot_size=0x%lx\n", boot_cpu, boot_address, boot_size);
+	if(boot_cpu)
+	{
+		writel(boot_address, (void*)0x91102104ULL);//cpu1_hart_rstvec
+		udelay(100);
+		writel(0x10001000,(void*)0x9110100c);
+		udelay(100);
+		writel(0x10001,(void*)0x9110100c);
+		udelay(100);
+		writel(0x10000,(void*)0x9110100c);
+	}
+	else
+	{
+		func_app_entry app_entry = (void *)(long)boot_address;
+		app_entry();
+	}
+
+    return 0;
+}
+
+U_BOOT_CMD_COMPLETE(
+	boot_baremetal, 4, 1, k230_boot_baremetal,
+	"boot_baremetal",
+	"\n boot_baremetal cpu addr size\n", NULL
+);
+
+
 #endif
