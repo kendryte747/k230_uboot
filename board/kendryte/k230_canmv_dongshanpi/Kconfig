@@ -2,7 +2,7 @@ if TARGET_K230_CANMV_DONGSHANPI
 
 config SYS_CPU
 	default "k230"
-    
+
 config SYS_VENDOR
 	default "kendryte"
 
@@ -18,9 +18,11 @@ config BOARD_SPECIFIC_OPTIONS
 
     choice
         prompt "DDR Type And Frequency"
-        default CANMV_DONGSHANPI_LPDDR3_2133
+        default CANMV_DONGSHANPI_LPDDR3_1866
 
         config CANMV_DONGSHANPI_LPDDR3_2133
             bool "k230 canmv dongshanpi ddr3 2133"
+        config CANMV_DONGSHANPI_LPDDR3_1866
+            bool "k230 canmv dongshanpi ddr3 1866"
     endchoice
 endif

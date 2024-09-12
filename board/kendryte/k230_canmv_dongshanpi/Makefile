@@ -32,3 +32,8 @@ obj-$(CONFIG_CANMV_DONGSHANPI_LPDDR3_2133) += gen_canmv_ddr_2133.lex.o
 
 $(obj)/gen_canmv_ddr_2133.lex.c: $(src)/canmv_ddr_init_2133.c   $(BOARD_COMMON_DIR)/ddr.sh
 	$(Q)($(BOARD_COMMON_DIR)/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x54359 || exit 1)
+
+obj-$(CONFIG_CANMV_DONGSHANPI_LPDDR3_1866) += gen_canmv_ddr_1866.lex.o
+
+$(obj)/gen_canmv_ddr_1866.lex.c: $(src)/canmv_ddr_init_1866.c   $(BOARD_COMMON_DIR)/ddr.sh
+	$(Q)($(BOARD_COMMON_DIR)/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x54359 || exit 1)
