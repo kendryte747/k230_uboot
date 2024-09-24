@@ -1055,6 +1055,9 @@ config SPL_ONENAND_SUPPORT
 	  load U-Boot from supported devices. This enables the drivers in
 	  drivers/mtd/onenand as part of an SPL build.
 
+config SPL_SPI_NAND_SUPPORT
+	bool "Support SPI Nand flash"
+
 config SPL_OS_BOOT
 	bool "Activate Falcon Mode"
 	depends on !TI_SECURE_DEVICE
