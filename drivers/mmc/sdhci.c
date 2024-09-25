@@ -734,12 +734,26 @@ static int sdhci_init(struct mmc *mmc)
 #if defined (CONFIG_MMC_SDHCI_SNPS)
 	sdhci_writeb(host, 0x0, 0x508);
 
-	if(dev_read_bool(mmc->dev, "1-8-v")) {
-		u32 ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
-		ctrl |= SDHCI_CTRL_VDD_180;
-		sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
-	}
-#endif
+	#if defined (CONFIG_MMC_AUTO_DETECT_VOLTAGE)
+		if((void *)0x91580000 == host->ioaddr) {
+			uint32_t cfg = readl((void *)0x91213414);
+
+			if((0x01 == (cfg & 0x01)) && (0x02 == (cfg & 0x02))) {
+
+			} else {
+				u32 ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+				ctrl |= SDHCI_CTRL_VDD_180;
+				sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
+			}
+		}
+	#else
+		if(dev_read_bool(mmc->dev, "1-8-v")) {
+			u32 ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+			ctrl |= SDHCI_CTRL_VDD_180;
+			sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
+		}
+	#endif // CONFIG_MMC_AUTO_DETECT_VOLTAGE
+#endif // CONFIG_MMC_SDHCI_SNPS
 
 	return 0;
 }

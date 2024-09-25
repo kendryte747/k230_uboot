@@ -16,4 +16,8 @@ if TARGET_K230_BURNTOOL
         def_bool y
         select KENDRYTE_K230
 
+    config MMC_AUTO_DETECT_VOLTAGE
+        def_bool y
+        depends on MMC_SDHCI_SNPS
+
 endif
