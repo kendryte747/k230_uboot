@@ -684,7 +684,7 @@ static void cb_write_lba(struct usb_ep *ep, struct usb_request *req)
 	kburn_usb->dl_size = size;
 	kburn_usb->dl_bytes = 0;
 
-	printf("require write %llx bytes to offset %llx\n", kburn_usb->dl_size, kburn_usb->offset);
+	printf("request write %llx bytes to offset %llx\n", kburn_usb->dl_size, kburn_usb->offset);
 
 	kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_OK, "START DL");
 

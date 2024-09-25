@@ -1,0 +1,27 @@
+if TARGET_K230_AIHARDWARE
+
+    config SYS_CPU
+        default "k230"
+
+    config SYS_VENDOR
+        default "kendryte"
+
+    config SYS_BOARD
+        default "k230_aihardware"
+
+    config SYS_CONFIG_NAME
+        default "k230_common"
+
+    config BOARD_SPECIFIC_OPTIONS
+        def_bool y
+        select KENDRYTE_K230
+
+    choice
+        prompt "DDR Type And Frequency"
+        default K230_LPDDR4_2667
+
+        config K230_LPDDR4_2667
+            bool "LPDDR4 2667, 512MiB"
+
+    endchoice
+endif
