@@ -600,6 +600,8 @@ static void rx_write_lba_handler(struct usb_ep *ep, struct usb_request *req)
 	const unsigned char *buffer = req->buf;
 	unsigned int buffer_size = req->actual;
 
+	char errormsg[32];
+
 	transfer_size = kburn_usb->dl_size - kburn_usb->dl_bytes;
 
 	if (req->status != 0) {
@@ -618,7 +620,10 @@ static void rx_write_lba_handler(struct usb_ep *ep, struct usb_request *req)
 	int result = kburn_write_medium(kburn_usb->burner, kburn_usb->offset, kburn_usb->buf, &xfer_size);
 	if((0x00 != result) || (xfer_size != transfer_size)) {
 		printf("write failed %d, %lld != %d\n", result, xfer_size, transfer_size);
-		kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_ERROR_MSG, "WRITE ERROR");
+
+		snprintf(errormsg, sizeof(errormsg), "WRITE ERROR, 0x%X", result);
+		kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_ERROR_MSG, errormsg);
+
 		return;
 	}
 

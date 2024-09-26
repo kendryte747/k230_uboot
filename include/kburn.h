@@ -75,4 +75,8 @@ struct kburn *kburn_sf_probe(void);
 struct kburn *kburn_mtd_probe(void);
 #endif // CONFIG_KBURN_MTD
 
+#if defined (CONFIG_KBURN_OTP)
+struct kburn *kburn_otp_probe(void);
+#endif // CONFIG_KBURN_OTP
+
 #endif // __KD_BURNER_H__

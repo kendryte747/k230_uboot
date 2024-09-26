@@ -30,3 +30,16 @@ obj-y += k230_boot.o
 ifdef CONFIG_SPL_BUILD
 obj-y += k230_spl.o
 endif
+
+# Add pufs driver
+obj-y += puf_fw/pufs_crypto.o
+obj-y += puf_fw/pufs_dma.o
+obj-y += puf_fw/pufs_ecc.o
+obj-y += puf_fw/pufs_ecp.o
+obj-y += puf_fw/pufs_hmac.o
+obj-y += puf_fw/pufs_ka.o
+obj-y += puf_fw/pufs_reg_ctrl.o
+obj-y += puf_fw/pufs_rt.o
+obj-y += puf_fw/pufs_sm2.o
+obj-y += puf_fw/pufs_sp38a.o
+obj-y += puf_fw/pufs_sp38d.o

@@ -83,9 +83,11 @@ void harts_early_init(void)
 
     writel(0x0, (volatile void __iomem *)(SYSCTL_PWR_BASE_ADDR + 0x158));
 
+#ifndef CONFIG_KBURN_OTP
 	csr_write(pmpaddr0, 0x24484dff);
 	csr_write(pmpaddr1, 0x244851ff);
 	csr_write(pmpcfg0, 0x9999);
+#endif // CONFIG_KBURN_OTP
 
 	improving_cpu_performance();
 }

@@ -25,6 +25,11 @@ struct kburn * kburn_probe_media(enum KBURN_MEDIA_TYPE type)
         kburn = kburn_mtd_probe();
     } else
 #endif // CONFIG_KBURN_MTD
+#if defined (CONFIG_KBURN_OTP)
+    if(KBURN_MEDIA_OTP == type) {
+        kburn = kburn_otp_probe();
+    } else
+#endif // CONFIG_KBURN_MTD
     {
         printf("kburn probe not support type %x\n", type);
     }

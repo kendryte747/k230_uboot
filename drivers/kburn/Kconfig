@@ -23,10 +23,16 @@ config KBURN_SF
 	  storage.
 
 config KBURN_MTD
-	bool "MTD back end for KBURN"
+	bool "MTD backend for KBURN"
 	depends on DM_MTD
 	help
 	  This option enables using KBURN to read and write to on any MTD device.
+
+config KBURN_OTP
+	bool "OTP backend for KBURN"
+	default n
+	help
+	  This option enables using KBURN to read and write to Chip OTP.
 
 endif
 endmenu
