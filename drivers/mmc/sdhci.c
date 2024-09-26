@@ -22,6 +22,10 @@
 #include <phys2bus.h>
 #include <power/regulator.h>
 
+#if defined (CONFIG_MMC_AUTO_DETECT_VOLTAGE)
+	#include <asm/io.h>
+#endif
+
 static void sdhci_reset(struct sdhci_host *host, u8 mask)
 {
 	unsigned long timeout;
@@ -736,7 +740,10 @@ static int sdhci_init(struct mmc *mmc)
 
 	#if defined (CONFIG_MMC_AUTO_DETECT_VOLTAGE)
 		if((void *)0x91580000 == host->ioaddr) {
-			uint32_t cfg = readl((void *)0x91213414);
+			uint32_t cfg_data = readl((const volatile void __iomem *)0x91213410UL);
+			uint32_t cfg = cpu_to_be32(cfg_data);
+
+			printf("mmc config 0x%08X\n", cfg);
 
 			if((0x01 == (cfg & 0x01)) && (0x02 == (cfg & 0x02))) {
 
