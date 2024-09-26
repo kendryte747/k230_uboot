@@ -16,11 +16,17 @@
 
 #include "kburn.h"
 
+#if defined (CONFIG_KENDRYTE_K230)
+	#include <asm/io.h>
+	#include <kendryte/k230_platform.h>
+#endif
+
 static void tx_done_handler(struct usb_ep *ep, struct usb_request *req);
 static void rx_command_handler(struct usb_ep *ep, struct usb_request *req);
 
 enum kburn_pkt_cmd {
     KBURN_CMD_NONE = 0,
+	KBURN_CMD_REBOOT = 0x01,
 
     KBURN_CMD_DEV_PROBE = 0x10,
 	KBURN_CMD_DEV_GET_INFO = 0x11,
@@ -736,6 +742,24 @@ static void cb_not_support(struct usb_ep *ep, struct usb_request *req)
     kburn_tx_error_string("NOT SUPPORT FUNC");
 }
 
+static void cb_reboot(struct usb_ep *ep, struct usb_request *req)
+{
+#define REBOOT_MARK 	(0x52626F74)
+
+	ALLOC_CACHE_ALIGN_BUFFER(struct kburn_usb_pkt, cbw, KBUNR_USB_PKT_SIZE);
+
+	memcpy((char *)cbw, req->buf, KBUNR_USB_PKT_SIZE);
+
+	uint64_t mark = get_unaligned_le64(&cbw->data[0]);
+
+	if(REBOOT_MARK == mark) {
+		// reboot 
+		writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);
+	} else {
+		// do nothing
+	}
+}
+
 static const struct kburn_pkt_handler_t pkt_handlers[] = {
     {
         .cmd = KBURN_CMD_NONE,
@@ -745,6 +769,10 @@ static const struct kburn_pkt_handler_t pkt_handlers[] = {
         .cmd = KBURN_CMD_MAX,
         .cb = cb_not_support,
     },
+	{
+		.cmd = KBURN_CMD_REBOOT,
+		.cb = cb_reboot,
+	},
     {
         .cmd = KBURN_CMD_DEV_PROBE,
         .cb = cb_probe_device,
