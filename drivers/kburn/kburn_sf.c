@@ -85,6 +85,7 @@ static int sf_write_medium(struct kburn *burn, u64 offset, const void *buf, u64 
     const void *buffer = buf;
     u64 off = offset;
     u64 size = *len;
+    u64 size_to_erase;
     u64 remaining, send_len;
 
     pr_debug("sf write offset %lld, size %lld\n", offset, size);
@@ -101,7 +102,13 @@ static int sf_write_medium(struct kburn *burn, u64 offset, const void *buf, u64 
         return -1;
 	}
 
-    if(0x00 != (rc = spi_flash_erase(flash, (u32)offset, size))) {
+    size_to_erase = size;
+    if(0x00 != (size % flash->erase_size)) {
+        size_to_erase = (size + flash->erase_size - 1) & ~(flash->erase_size - 1);
+    }
+    pr_info("sf write, erase 0x%llx from 0x%llx\n", size_to_erase, offset);
+
+    if(0x00 != (rc = spi_flash_erase(flash, (u32)offset, size_to_erase))) {
         pr_err("sf write, erase %lld failed, %d\n", offset, rc);
         return -1;
     }

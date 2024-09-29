@@ -1,0 +1,9 @@
+#include "k230_burntool_base.dtsi"
+
+&mmc0 {
+	status = "okay";
+};
+
+&mmc1 {
+	status = "okay";
+};

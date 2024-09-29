@@ -46,14 +46,6 @@
     };
 };
 
-&mmc0 {
-	status = "okay";
-};
-
-&mmc1 {
-	status = "okay";
-};
-
 &usbotg0 {
 	status = "okay";
 };

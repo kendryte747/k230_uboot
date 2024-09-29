@@ -54,8 +54,6 @@
 
 #include "board_common.h"
 
-#define SUPPORT_MMC_LOAD_BOOT
-
 #ifndef CONFIG_MEM_BASE_ADDR
 #undef CONFIG_MEM_BASE_ADDR
 #undef CONFIG_MEM_TOTAL_SIZE

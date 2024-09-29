@@ -25,7 +25,11 @@
 obj-y += k230d/
 
 obj-y += board_common.o
+
+ifndef CONFIG_KBURN
 obj-y += k230_boot.o
+obj-y += cmd_k230_boot.o
+endif
 
 ifdef CONFIG_SPL_BUILD
 obj-y += k230_spl.o

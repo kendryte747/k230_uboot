@@ -130,6 +130,7 @@ static int mtd_write_medium(struct kburn *burn, u64 offset, const void *buf, u64
     int ret = -1;
 	u64 off = offset, size= *len, remaining = *len;
     u64 lock_ofs = offset, lock_len = *len;
+    u64 size_to_erase;
 
 	bool has_pages = mtd->type == MTD_NANDFLASH ||
 			 mtd->type == MTD_MLCNANDFLASH;
@@ -153,7 +154,13 @@ static int mtd_write_medium(struct kburn *burn, u64 offset, const void *buf, u64
         return -1;
     }
 
-    if(0x00 != mtd_erase_medium(burn, offset, &size)) {
+    size_to_erase = size;
+    if(0x00 != (size % mtd->erasesize)) {
+        size_to_erase = (size + mtd->erasesize - 1) & ~(mtd->erasesize - 1);
+    }
+    pr_info("mtd write, erase 0x%llx from 0x%llx\n", size_to_erase, offset);
+
+    if(0x00 != mtd_erase_medium(burn, offset, &size_to_erase)) {
         printf("MTD device erase failed\n");
 		mtd_lock(mtd, lock_ofs, lock_len);
         return -1;
