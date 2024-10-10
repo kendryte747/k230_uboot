@@ -171,3 +171,27 @@
 		>;
 	};
 };
+
+&pmu_iomux {
+	status = "okay";
+
+	pmu_pins: pmu_pins {
+		u-boot,dm-pre-reloc;
+		pinctrl-single,pins = <
+			(IO64) ( PMU_IOSEL_GPIO<<SEL | 0<<SL | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 2<<DS | 0<<ST )
+
+			(IO65) ( PMU_IOSEL_INT<<SEL | 0<<SL | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 2<<DS | 0<<ST )
+			(IO66) ( PMU_IOSEL_INT<<SEL | 0<<SL | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 2<<DS | 0<<ST )
+			(IO67) ( PMU_IOSEL_INT<<SEL | 0<<SL | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 2<<DS | 0<<ST )
+
+			 // INT4(GPIO68) is used to wake up the PMU and is not recommended for use as GPIO.
+			(IO68) ( PMU_IOSEL_INT<<SEL | 0<<SL | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 2<<DS | 0<<ST )
+
+			(IO69) ( PMU_IOSEL_INT<<SEL | 0<<SL | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 2<<DS | 0<<ST )
+
+			// IO 70&71 used to control PMIC, also can't use as GPIO.
+			(IO70) ( PMU_IOSEL_INT<<SEL | 0<<SL | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 2<<DS | 0<<ST )
+			(IO71) ( PMU_IOSEL_INT<<SEL | 0<<SL | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 2<<DS | 0<<ST )
+		>;
+	};
+};
