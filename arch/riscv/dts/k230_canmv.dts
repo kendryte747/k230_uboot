@@ -138,7 +138,7 @@
 		(IO32) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
 		(IO33) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
 		(IO34) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
-		(IO35) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
+		(IO35) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 1<<PU | 1<<PD | 7<<DS | 0<<ST )
 		// BT_UART_RXD
 		(IO36) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST )
 		// BT_UART_TXD
