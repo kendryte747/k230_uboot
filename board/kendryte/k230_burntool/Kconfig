@@ -20,4 +20,7 @@ if TARGET_K230_BURNTOOL
         def_bool y
         depends on MMC_SDHCI_SNPS
 
+    config USB_GADGET_DETECT_HS_FS
+        def_bool y
+
 endif

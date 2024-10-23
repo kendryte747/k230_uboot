@@ -457,6 +457,10 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 	int i;
 	unsigned int uTemp;
 
+#ifdef CONFIG_USB_GADGET_DETECT_HS_FS
+	unsigned int speed;
+#endif
+
 	writel(CORE_SOFT_RESET, &reg->grstctl);
 	udelay(100);
 	writel(0, &reg->grstctl);
@@ -487,6 +491,16 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 	if (dev->pdata->usb_gusbcfg)
 		dflt_gusbcfg = dev->pdata->usb_gusbcfg;
 
+#ifdef CONFIG_USB_GADGET_DETECT_HS_FS
+	uTemp = readl(&reg->dcfg);
+	if(uTemp & 0x01) {
+		dflt_gusbcfg |= (1 << 6);
+		speed = DEV_SPEED_FULL_SPEED_20;
+	} else {
+		speed = DEV_SPEED_HIGH_SPEED_20;
+	}
+#endif
+
 	writel(dflt_gusbcfg, &reg->gusbcfg);
 
 	/* 3. Put the OTG device core in the disconnected state.*/
@@ -503,7 +517,11 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 
 	/* 5. Configure OTG Core to initial settings of device mode.*/
 	/* [][1: full speed(30Mhz) 0:high speed]*/
+#ifdef CONFIG_USB_GADGET_DETECT_HS_FS
+	writel(EP_MISS_CNT(1) | speed, &reg->dcfg);
+#else
 	writel(EP_MISS_CNT(1) | DEV_SPEED_HIGH_SPEED_20, &reg->dcfg);
+#endif
 
 	mdelay(1);
 

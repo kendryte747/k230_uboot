@@ -99,7 +99,7 @@ static struct usb_endpoint_descriptor hs_ep_out = {
 static struct usb_endpoint_descriptor fs_ep_in = {
 	.bLength            = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType    = USB_DT_ENDPOINT,
-	.bEndpointAddress   = USB_DIR_IN | 3,
+	.bEndpointAddress   = USB_DIR_IN | 1,
 	.bmAttributes       = USB_ENDPOINT_XFER_BULK,
 	.wMaxPacketSize     = cpu_to_le16(64),
 };
@@ -107,7 +107,7 @@ static struct usb_endpoint_descriptor fs_ep_in = {
 static struct usb_endpoint_descriptor fs_ep_out = {
 	.bLength		= USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType	= USB_DT_ENDPOINT,
-	.bEndpointAddress	= USB_DIR_OUT | 4,
+	.bEndpointAddress	= USB_DIR_OUT | 2,
 	.bmAttributes		= USB_ENDPOINT_XFER_BULK,
 	.wMaxPacketSize		= cpu_to_le16(64),
 };
@@ -127,6 +127,7 @@ static struct usb_descriptor_header *kburn_fs_function[] = {
 	(struct usb_descriptor_header *)&interface_desc,
 	(struct usb_descriptor_header *)&fs_ep_in,
 	(struct usb_descriptor_header *)&fs_ep_out,
+	NULL,
 };
 
 static struct usb_descriptor_header *kburn_hs_function[] = {
