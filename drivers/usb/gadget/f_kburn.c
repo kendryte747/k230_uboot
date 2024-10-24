@@ -13,6 +13,7 @@
 #include <linux/compiler.h>
 #include <g_dnl.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "kburn.h"
 
@@ -22,7 +23,7 @@
 #endif
 
 static void tx_done_handler(struct usb_ep *ep, struct usb_request *req);
-static void rx_command_handler(struct usb_ep *ep, struct usb_request *req);
+static void rx_handler_command(struct usb_ep *ep, struct usb_request *req);
 
 enum kburn_pkt_cmd {
     KBURN_CMD_NONE = 0,
@@ -31,8 +32,13 @@ enum kburn_pkt_cmd {
     KBURN_CMD_DEV_PROBE = 0x10,
 	KBURN_CMD_DEV_GET_INFO = 0x11,
 
-	KBURN_CMD_WRITE_LBA = 0x20,
-	KBURN_CMD_ERASE_LBA = 0x21,
+	KBURN_CMD_ERASE_LBA = 0x20,
+
+	KBURN_CMD_WRITE_LBA = 0x21,
+	KBURN_CMD_WRITE_LBA_CHUNK = 0x22,
+
+	KBURN_CMD_READ_LBA = 0x23,
+	KBURN_CMD_READ_LBA_CHUNK = 0x24,
 
     KBURN_CMD_MAX,
 };
@@ -48,12 +54,12 @@ enum kburn_pkt_result {
     KBURN_RESULT_MAX,
 };
 
-#define KBUNR_USB_PKT_SIZE	(64)
+#define KBUNR_USB_PKT_SIZE	(60)
 
 struct kburn_usb_pkt {
     uint16_t cmd;
     uint16_t result; /* only valid in csw */
-    uint8_t data_size;
+    uint16_t data_size;
     uint8_t data[0];
 };
 
@@ -78,6 +84,8 @@ struct kburn_usb_t {
 
     void *buf;
 	void *buf_head;
+
+    void *rdbuf;
 };
 
 static struct usb_endpoint_descriptor hs_ep_in = {
@@ -167,8 +175,9 @@ struct kburn_usb_t *get_kburn_usb(void)
 
 	if (!kburn_usb) {
 		kburn_usb = memalign(CONFIG_SYS_CACHELINE_SIZE, sizeof(*kburn_usb));
-		if (!kburn_usb)
+		if (!kburn_usb) {
 			return NULL;
+		}
 
 		s_kburn = kburn_usb;
 		memset(kburn_usb, 0, sizeof(*kburn_usb));
@@ -176,11 +185,21 @@ struct kburn_usb_t *get_kburn_usb(void)
 
 	if (!kburn_usb->buf_head) {
 		kburn_usb->buf_head = memalign(CONFIG_SYS_CACHELINE_SIZE, KBURN_USB_BUFFER_SIZE);
-		if (!kburn_usb->buf_head)
+		if (!kburn_usb->buf_head) {
 			return NULL;
+		}
 
 		kburn_usb->buf = kburn_usb->buf_head;
 		memset(kburn_usb->buf_head, 0, KBURN_USB_BUFFER_SIZE);
+	}
+
+	if(!kburn_usb->rdbuf) {
+		kburn_usb->rdbuf = memalign(CONFIG_SYS_CACHELINE_SIZE, KBURN_USB_EP_IN_BUFFER_SZIE + sizeof(struct kburn_usb_pkt));
+		if (!kburn_usb->rdbuf) {
+			return NULL;
+		}
+
+		memset(kburn_usb->rdbuf, 0, KBURN_USB_EP_IN_BUFFER_SZIE + sizeof(struct kburn_usb_pkt));
 	}
 
 	return kburn_usb;
@@ -191,8 +210,9 @@ struct usb_gadget *g,
 struct usb_endpoint_descriptor *fs,
 struct usb_endpoint_descriptor *hs)
 {
-	if (gadget_is_dualspeed(g) && g->speed == USB_SPEED_HIGH)
+	if (gadget_is_dualspeed(g) && g->speed == USB_SPEED_HIGH) {
 		return hs;
+	}
 	return fs;
 }
 
@@ -203,13 +223,15 @@ static int kburn_bind(struct usb_configuration *c, struct usb_function *f)
 	struct kburn_usb_t *f_kburn = func_to_kburn(f);
 
 	id = usb_interface_id(c, f);
-	if (id < 0)
+	if (id < 0) {
 		return id;
+	}
 	interface_desc.bInterfaceNumber = id;
 
 	id = usb_string_id(c->cdev);
-	if (id < 0)
+	if (id < 0) {
 		return id;
+	}
 
 	kburn_string_defs[0].id = id;
 	interface_desc.iInterface = id;
@@ -217,13 +239,15 @@ static int kburn_bind(struct usb_configuration *c, struct usb_function *f)
     usb_gadget_vbus_draw(gadget, 500);
 
 	f_kburn->in_ep = usb_ep_autoconfig(gadget, &fs_ep_in);
-	if (!f_kburn->in_ep)
+	if (!f_kburn->in_ep) {
 		return -ENODEV;
+	}
 	f_kburn->in_ep->driver_data = c->cdev;
 
 	f_kburn->out_ep = usb_ep_autoconfig(gadget, &fs_ep_out);
-	if (!f_kburn->out_ep)
+	if (!f_kburn->out_ep) {
 		return -ENODEV;
+	}
 	f_kburn->out_ep->driver_data = c->cdev;
 
     return 0;
@@ -240,14 +264,14 @@ static int kburn_handle_setup(struct usb_function *f, const struct usb_ctrlreque
 	struct usb_gadget *gadget = f->config->cdev->gadget;
 	struct usb_request *req = f->config->cdev->req;
 
+	int value = 0;
+
 	u16		w_index = get_unaligned_le16(&ctrl->wIndex);
 	u16		w_value = get_unaligned_le16(&ctrl->wValue);
 	u16		w_length = get_unaligned_le16(&ctrl->wLength);
 	u8		req_type = ctrl->bRequestType & USB_TYPE_MASK;
 
-	int value = 0;
-
-	printf("w_index 0x%x, w_value 0x%x, w_length %d, req_type %x\n", \
+	printf("w_index 0x%x, w_value 0x%x, w_length %d, req_type 0x%x\n", \
 		w_index, w_value, w_length, req_type);
 
 	if (USB_TYPE_VENDOR == (req_type & USB_TYPE_VENDOR)) {
@@ -272,18 +296,40 @@ static int kburn_handle_setup(struct usb_function *f, const struct usb_ctrlreque
 	return value;
 }
 
-static struct usb_request *kburn_start_ep(struct usb_ep *ep)
+static struct usb_request *kburn_start_out_ep(struct usb_ep *ep)
 {
 	struct usb_request *req;
 
 	req = usb_ep_alloc_request(ep, 0);
-	if (!req)
+	if (!req) {
 		return NULL;
+	}
 
-	req->length = KBURN_USB_EP_BUFFER_SZIE;
-	req->buf = memalign(CONFIG_SYS_CACHELINE_SIZE, KBURN_USB_EP_BUFFER_SZIE);
+	req->length = KBURN_USB_EP_OUT_BUFFER_SZIE;
+	req->buf = memalign(CONFIG_SYS_CACHELINE_SIZE, KBURN_USB_EP_OUT_BUFFER_SZIE);
 	if (!req->buf) {
 		usb_ep_free_request(ep, req);
+		return NULL;
+	}
+	memset(req->buf, 0, req->length);
+
+	return req;
+}
+
+static struct usb_request *kburn_start_in_ep(struct usb_ep *ep)
+{
+	struct usb_request *req;
+
+	req = usb_ep_alloc_request(ep, 0);
+	if (!req) {
+		return NULL;
+	}
+
+	req->length = KBURN_USB_EP_IN_BUFFER_SZIE + sizeof(struct kburn_usb_pkt);
+	req->buf = memalign(CONFIG_SYS_CACHELINE_SIZE, KBURN_USB_EP_IN_BUFFER_SZIE + sizeof(struct kburn_usb_pkt));
+	if (!req->buf) {
+		usb_ep_free_request(ep, req);
+		printf("%s malloc failed.\n", __func__);
 		return NULL;
 	}
 	memset(req->buf, 0, req->length);
@@ -316,6 +362,11 @@ static void kburn_disable(struct usb_function *f)
 		f_kburn->buf = NULL;
 	}
 
+	if(f_kburn->rdbuf) {
+		free(f_kburn->rdbuf);
+		f_kburn->rdbuf = NULL;
+	}
+
 	if(f_kburn->burner) {
 		kburn_destory(f_kburn->burner);
 		f_kburn->burner = NULL;
@@ -330,7 +381,7 @@ static int kburn_set_alt(struct usb_function *f, unsigned interface, unsigned al
 	struct kburn_usb_t *f_kburn = func_to_kburn(f);
 	const struct usb_endpoint_descriptor *d;
 
-	printf("%s: func: %s intf: %d alt: %d\n",
+	debug("%s: func: %s intf: %d alt: %d\n",
 	      __func__, f->name, interface, alt);
 
 	d = kburn_ep_desc(gadget, &fs_ep_out, &hs_ep_out);
@@ -340,13 +391,13 @@ static int kburn_set_alt(struct usb_function *f, unsigned interface, unsigned al
 		return ret;
 	}
 
-	f_kburn->out_req = kburn_start_ep(f_kburn->out_ep);
+	f_kburn->out_req = kburn_start_out_ep(f_kburn->out_ep);
 	if (!f_kburn->out_req) {
 		printf("failed to alloc out req\n");
 		ret = -EINVAL;
 		goto err;
 	}
-	f_kburn->out_req->complete = rx_command_handler;
+	f_kburn->out_req->complete = rx_handler_command;
 
 	d = kburn_ep_desc(gadget, &fs_ep_in, &hs_ep_in);
 	ret = usb_ep_enable(f_kburn->in_ep, d);
@@ -355,7 +406,7 @@ static int kburn_set_alt(struct usb_function *f, unsigned interface, unsigned al
 		goto err;
 	}
 
-	f_kburn->in_req = kburn_start_ep(f_kburn->in_ep);
+	f_kburn->in_req = kburn_start_in_ep(f_kburn->in_ep);
 	if (!f_kburn->in_req) {
 		printf("failed alloc req in\n");
 		ret = -EINVAL;
@@ -432,7 +483,7 @@ static int kburn_tx_write(const char *buffer, unsigned int buffer_size)
 	ret = usb_ep_queue(s_kburn->in_ep, in_req, 0);
 	if (ret)
 		printf("Error %d on queue\n", ret);
-	return 0;
+	return ret;
 }
 
 static int kburn_tx_result(uint16_t cmd, uint16_t result, uint8_t *data, uint8_t data_size)
@@ -487,7 +538,7 @@ static void tx_done_handler(struct usb_ep *ep, struct usb_request *req)
 
 static const struct kburn_pkt_handler_t pkt_handlers[];
 
-static void rx_command_handler(struct usb_ep *ep, struct usb_request *req)
+static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 {
 	void (*func_cb)(struct usb_ep *ep, struct usb_request *req) = NULL;
 
@@ -537,7 +588,7 @@ static void cb_probe_device(struct usb_ep *ep, struct usb_request *req)
 
 	uint8_t index = 0;
 	enum KBURN_MEDIA_TYPE type = KBURN_MEDIA_NONE;
-	uint64_t result[1] = {KBURN_USB_EP_BUFFER_SZIE};
+	uint64_t result[2] = {KBURN_USB_EP_OUT_BUFFER_SZIE, KBURN_USB_EP_IN_BUFFER_SZIE};
 
 	memcpy((char *)cbw, req->buf, KBUNR_USB_PKT_SIZE);
 
@@ -588,8 +639,8 @@ static unsigned int rx_bytes_expected(struct usb_ep *ep)
 
 	if (rx_remain <= 0) {
 		return 0;
-	} else if (rx_remain > KBURN_USB_EP_BUFFER_SZIE) {
-		return KBURN_USB_EP_BUFFER_SZIE;
+	} else if (rx_remain > KBURN_USB_EP_OUT_BUFFER_SZIE) {
+		return KBURN_USB_EP_OUT_BUFFER_SZIE;
 	}
 
 	rem = rx_remain % maxpacket;
@@ -600,7 +651,7 @@ static unsigned int rx_bytes_expected(struct usb_ep *ep)
 	return (unsigned int)rx_remain;
 }
 
-static void rx_write_lba_handler(struct usb_ep *ep, struct usb_request *req)
+static void rx_handler_write_lba(struct usb_ep *ep, struct usb_request *req)
 {
 	struct kburn_usb_t *kburn_usb = get_kburn_usb();
 	unsigned int transfer_size = 0;
@@ -626,7 +677,7 @@ static void rx_write_lba_handler(struct usb_ep *ep, struct usb_request *req)
 	u64 xfer_size = transfer_size;
 	int result = kburn_write_medium(kburn_usb->burner, kburn_usb->offset, kburn_usb->buf, &xfer_size);
 	if((0x00 != result) || (xfer_size != transfer_size)) {
-		printf("write failed %d, %lld != %d\n", result, xfer_size, transfer_size);
+		printf("write failed %d, %lld != %d, at 0x%llx\n", result, xfer_size, transfer_size, kburn_usb->offset);
 
 		snprintf(errormsg, sizeof(errormsg), "WRITE ERROR, 0x%X", result);
 		kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_ERROR_MSG, errormsg);
@@ -637,8 +688,8 @@ static void rx_write_lba_handler(struct usb_ep *ep, struct usb_request *req)
 	kburn_usb->offset += transfer_size;
 
 	if (kburn_usb->dl_bytes >= kburn_usb->dl_size) {
-		req->complete = rx_command_handler;
-		req->length = KBURN_USB_EP_BUFFER_SZIE;
+		req->complete = rx_handler_command;
+		req->length = KBURN_USB_EP_OUT_BUFFER_SZIE;
 		kburn_usb->buf = kburn_usb->buf_head;
 
 		printf("write 0x%llx bytes done\n", kburn_usb->dl_size);
@@ -648,7 +699,7 @@ static void rx_write_lba_handler(struct usb_ep *ep, struct usb_request *req)
 	} else {
 		req->length = rx_bytes_expected(ep);
 		if (kburn_usb->buf == kburn_usb->buf_head)
-			kburn_usb->buf = kburn_usb->buf_head + KBURN_USB_EP_BUFFER_SZIE;
+			kburn_usb->buf = kburn_usb->buf_head + KBURN_USB_EP_OUT_BUFFER_SZIE;
 		else
 			kburn_usb->buf = kburn_usb->buf_head;
 
@@ -670,7 +721,7 @@ static void cb_write_lba(struct usb_ep *ep, struct usb_request *req)
 	memcpy((char *)cbw, req->buf, KBUNR_USB_PKT_SIZE);
 
 	if(cbw->data_size != 16) {
-		kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_ERROR_MSG, "ERROR DATA SIZE");
+		kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_ERROR_MSG, "ERROR CMD SIZE");
 		return;
 	}
 
@@ -696,11 +747,11 @@ static void cb_write_lba(struct usb_ep *ep, struct usb_request *req)
 	kburn_usb->dl_size = size;
 	kburn_usb->dl_bytes = 0;
 
-	printf("request write %llx bytes to offset %llx\n", kburn_usb->dl_size, kburn_usb->offset);
+	printf("request write 0x%llx bytes to offset 0x%llx\n", kburn_usb->dl_size, kburn_usb->offset);
 
 	kburn_tx_string_result(KBURN_CMD_WRITE_LBA, KBURN_RESULT_OK, "START DL");
 
-	req->complete = rx_write_lba_handler;
+	req->complete = rx_handler_write_lba;
 	req->length = rx_bytes_expected(ep);
 }
 
@@ -736,6 +787,115 @@ static void cb_erase_lba(struct usb_ep *ep, struct usb_request *req)
 	} else {
 		kburn_tx_string_result(KBURN_CMD_ERASE_LBA, KBURN_RESULT_ERROR_MSG, "RUNTIME ERROR");
 	}
+}
+
+/* usb_request complete call back to handle upload image */
+static void tx_handler_ul_image(struct usb_ep *ep, struct usb_request *req)
+{
+	struct kburn_usb_t *kburn_usb = get_kburn_usb();
+	struct usb_request *in_req = s_kburn->in_req;
+
+	int ret;
+	char errormsg[32];
+	struct kburn_usb_pkt *pkt = (struct kburn_usb_pkt *)kburn_usb->rdbuf;
+
+	/* Print error status of previous transfer */
+	if (req->status)
+		printf("status: %d ep '%s' trans: %d len %d\n", req->status,
+		      ep->name, req->actual, req->length);
+
+	if (kburn_usb->ul_bytes >= kburn_usb->ul_size) {
+		printf("read 0x%llx bytes done\n", kburn_usb->ul_size);
+
+		in_req->length = 0;
+		in_req->complete = tx_done_handler;
+
+		kburn_tx_string_result(KBURN_CMD_READ_LBA_CHUNK, KBURN_RESULT_OK, "WRITE DONE");
+
+		return;
+	}
+
+	/* Proceed with current chunk */
+	u64 transfer_size = kburn_usb->ul_size - kburn_usb->ul_bytes;
+
+	// we have add header size of the buffer when alloc it.
+	if (transfer_size > KBURN_USB_EP_IN_BUFFER_SZIE)
+		transfer_size = KBURN_USB_EP_IN_BUFFER_SZIE;
+
+	int result = kburn_read_medium(kburn_usb->burner, kburn_usb->offset, pkt->data, &transfer_size);
+	if(0x00 != result) {
+		printf("read failed %d, at 0x%llx\n", result, kburn_usb->offset);
+
+		snprintf(errormsg, sizeof(errormsg), "READ ERROR, 0x%X", result);
+		kburn_tx_string_result(KBURN_CMD_READ_LBA_CHUNK, KBURN_RESULT_ERROR_MSG, errormsg);
+
+		return;
+	}
+
+	kburn_usb->offset += transfer_size;
+	kburn_usb->ul_bytes += transfer_size;
+
+	/* Proceed with USB request */
+	pkt->cmd = 0x8000 | KBURN_CMD_READ_LBA_CHUNK;
+	pkt->result = KBURN_RESULT_OK;
+	pkt->data_size = (uint16_t)transfer_size;
+
+	memcpy(in_req->buf, pkt, transfer_size + sizeof(struct kburn_usb_pkt));
+	in_req->length = transfer_size + sizeof(struct kburn_usb_pkt);
+	in_req->complete = tx_handler_ul_image;
+
+	// usb_ep_dequeue(s_kburn->in_ep, in_req);
+	ret = usb_ep_queue(s_kburn->in_ep, in_req, 0);
+	if (ret) {
+		printf("Error %d on queue\n", ret);
+	}
+}
+
+static void cb_read_lba(struct usb_ep *ep, struct usb_request *req)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(struct kburn_usb_pkt, cbw, KBUNR_USB_PKT_SIZE);
+	struct kburn_usb_t *kburn_usb = get_kburn_usb();
+	struct usb_request *in_req = s_kburn->in_req;
+
+	u64 offset, size;
+
+	memcpy((char *)cbw, req->buf, KBUNR_USB_PKT_SIZE);
+	if(cbw->data_size != 16) {
+		kburn_tx_string_result(KBURN_CMD_READ_LBA, KBURN_RESULT_ERROR_MSG, "ERROR CMD SIZE");
+		return;
+	}
+
+	offset = get_unaligned_le64(&cbw->data[0]);
+	size = get_unaligned_le64(&cbw->data[8]);
+
+	if(0x01 != kburn_usb->burner->medium_info.valid) {
+		kburn_tx_string_result(KBURN_CMD_READ_LBA, KBURN_RESULT_ERROR_MSG, "MEDIUM INFO INVALID");
+		return;
+	}
+
+	if(0x00 == size) {
+		kburn_tx_string_result(KBURN_CMD_READ_LBA, KBURN_RESULT_ERROR_MSG, "DATA SIZE INVALID");
+		return;
+	}
+
+	if ((offset + size) > kburn_usb->burner->medium_info.capacity) {
+		kburn_tx_string_result(KBURN_CMD_READ_LBA, KBURN_RESULT_ERROR_MSG, "DATA SIZE EXCEED");
+		return;
+	}
+
+	if(NULL == kburn_usb->burner->read_medium) {
+		kburn_tx_string_result(KBURN_CMD_READ_LBA, KBURN_RESULT_ERROR_MSG, "NO READ FUNC");
+		return;
+	}
+
+	kburn_usb->offset = offset;
+	kburn_usb->ul_size = size;
+	kburn_usb->ul_bytes = 0;
+
+	printf("request read 0x%llx bytes from offset 0x%llx\n", kburn_usb->ul_size, kburn_usb->offset);
+	
+	in_req->complete = tx_handler_ul_image;
+	kburn_tx_string_result(KBURN_CMD_READ_LBA, KBURN_RESULT_OK, "READ START");
 }
 
 static void cb_not_support(struct usb_ep *ep, struct usb_request *req)
@@ -789,6 +949,10 @@ static const struct kburn_pkt_handler_t pkt_handlers[] = {
 	{
 		.cmd = KBURN_CMD_ERASE_LBA,
 		.cb = cb_erase_lba,
+	},
+	{
+		.cmd = KBURN_CMD_READ_LBA,
+		.cb = cb_read_lba,
 	},
     {
         // end of table

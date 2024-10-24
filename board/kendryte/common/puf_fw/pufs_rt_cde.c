@@ -1,7 +1,7 @@
 
-#include "pufs_internal.h"
-#include "pufs_rt_internal.h"
-#include "platform.h"
+#include "kendryte/pufs/pufs_common/pufs_internal.h"
+#include "kendryte/pufs/pufs_rt/pufs_rt_internal.h"
+#include "kendryte/k230_platform.h"
 // for PSIOT_012CW01D_B12C project
 
 #define PUFS_CDE_SEGMENT          128 // 1K bits
