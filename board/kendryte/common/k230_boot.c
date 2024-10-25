@@ -53,6 +53,12 @@
 #endif
 
 #include "board_common.h"
+#ifdef CONFIG_AUTO_DETECT_DDR_SIZE
+#include <asm/global_data.h>
+DECLARE_GLOBAL_DATA_PTR;
+#define CONFIG_MEM_TOTAL_SIZE  (gd->ram_size)
+#endif
+
 
 #ifndef CONFIG_MEM_BASE_ADDR
 #undef CONFIG_MEM_BASE_ADDR
@@ -299,9 +305,38 @@ int k230_img_load_boot_sys(en_boot_sys_t sys) {
 
   return ret;
 }
+struct k230_ddr_size_tag_st{
+  u32 flage;
+  u32 shash;
+  u32 resver;
+  u32 ddr_size;
+};
+static uint32_t shash_len(const char *s,int len) {
+  uint32_t v = 5381;
+  int i = 0;
 
+  for(i= 0; i < len; i++){
+    v = (v << 5) + v + s[i];
+  }
+  return v;
+}
+
+void k230_boot_write_ddr_size_for_rtsmart(u64 ddr_size) {
+
+  struct k230_ddr_size_tag_st size_tag;
+
+  size_tag.flage = 0x5a5a5a5a;
+  size_tag.shash = 0;
+  size_tag.resver = 0;
+  size_tag.ddr_size = ddr_size;
+  size_tag.shash = shash_len((const unsigned char *)&size_tag, sizeof(size_tag));
+
+  memcpy(CONFIG_RTSMART_OPENSIB_MEMORY_SIZE - sizeof(size_tag), &size_tag, sizeof(size_tag));
+  flush_cache(CONFIG_RTSMART_OPENSIB_MEMORY_SIZE-sizeof(size_tag), sizeof(size_tag));
+}
 static int k230_boot_reset_big_hard_and_run(ulong core_run_addr) {
   printf("Jump to big hart\n");
+  k230_boot_write_ddr_size_for_rtsmart(gd->ram_size);
 
   writel(core_run_addr,   (void *)0x91102104ULL);
   writel(0x10001000,      (void *)0x9110100cULL);

@@ -135,4 +135,6 @@ void spl_device_disable(void);
 int spl_load_image_type(void);
 #endif
 
+u32 detect_ddr_size(void);
+
 #endif

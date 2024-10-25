@@ -39,11 +39,12 @@
 #include <memalign.h>
 #include <stdio.h>
 #include <u-boot/crc.h>
+#include <asm/global_data.h>
 
 #include <kendryte/k230_platform.h>
 
 #include "board_common.h"
-
+DECLARE_GLOBAL_DATA_PTR;
 int mmc_get_env_dev(void) {
   return (BOOT_MEDIUM_SDIO1 == g_boot_medium) ? 1 : 0;
 }
@@ -164,4 +165,58 @@ U_BOOT_CMD(
 	"k230_gpio set/get/in/out pin [value]",
 	"k230_gpio set/get/in/out pin [value]"
 );
+#endif
+
+u32 detect_ddr_size(void)
+{
+	u64 ddr_size = 0;
+	u64 readv0,readv1 = 0;
+	ulong ddr_detect_pattern[]={0x1234567887654321, 0x1122334455667788};
+
+
+	gd->ram_base = CONFIG_MEM_BASE_ADDR;
+  gd->ram_size  = 0x8000000;
+
+	writeq(ddr_detect_pattern[0], CONFIG_MEM_BASE_ADDR);
+  writeq(ddr_detect_pattern[0], CONFIG_MEM_BASE_ADDR+8);
+	flush_dcache_range(CONFIG_MEM_BASE_ADDR, CONFIG_MEM_BASE_ADDR+CONFIG_SYS_CACHELINE_SIZE);
+
+	for(ddr_size = 128*1024*1024; ddr_size <= (u64)(1*1024*1024*1024); ddr_size=ddr_size<<1 ){
+		invalidate_dcache_range(ddr_size, ddr_size + CONFIG_SYS_CACHELINE_SIZE);
+		readv0 = readq(ddr_size);
+
+		if(readv0 == ddr_detect_pattern[0]){//再次确认下
+			writeq(ddr_detect_pattern[1], ddr_size+8);
+			flush_dcache_range(ddr_size, ddr_size+CONFIG_SYS_CACHELINE_SIZE);
+			invalidate_dcache_range(CONFIG_MEM_BASE_ADDR, CONFIG_MEM_BASE_ADDR + CONFIG_SYS_CACHELINE_SIZE);
+
+			readv1 = readq(CONFIG_MEM_BASE_ADDR+8);
+			if(readv1 == ddr_detect_pattern[1]){
+        //printf("get ddr size=%lx\n", ddr_size);
+        break;
+			}
+		}
+    //printf("ddr size=%lx %lx,%lx \n", ddr_size,readv0,readv1);
+	}
+  gd->ram_size = ddr_size;
+	//printf("ddr detect error %x\n\n", ddr_size);
+	return ddr_size;
+}
+
+#ifdef CONFIG_AUTO_DETECT_DDR_SIZE
+int dram_init(void)
+{
+  detect_ddr_size();
+  return 0;
+}
+#else
+int dram_init(void)
+{
+	return fdtdec_setup_mem_size_base();
+}
+
+int dram_init_banksize(void)
+{
+	return fdtdec_setup_memory_banksize();
+}
 #endif
