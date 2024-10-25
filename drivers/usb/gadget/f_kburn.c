@@ -810,7 +810,7 @@ static void tx_handler_ul_image(struct usb_ep *ep, struct usb_request *req)
 		in_req->length = 0;
 		in_req->complete = tx_done_handler;
 
-		kburn_tx_string_result(KBURN_CMD_READ_LBA_CHUNK, KBURN_RESULT_OK, "WRITE DONE");
+		kburn_tx_string_result(KBURN_CMD_READ_LBA_CHUNK, KBURN_RESULT_OK, "READ DONE");
 
 		return;
 	}
@@ -825,6 +825,8 @@ static void tx_handler_ul_image(struct usb_ep *ep, struct usb_request *req)
 	int result = kburn_read_medium(kburn_usb->burner, kburn_usb->offset, pkt->data, &transfer_size);
 	if(0x00 != result) {
 		printf("read failed %d, at 0x%llx\n", result, kburn_usb->offset);
+
+		in_req->complete = tx_done_handler;
 
 		snprintf(errormsg, sizeof(errormsg), "READ ERROR, 0x%X", result);
 		kburn_tx_string_result(KBURN_CMD_READ_LBA_CHUNK, KBURN_RESULT_ERROR_MSG, errormsg);
