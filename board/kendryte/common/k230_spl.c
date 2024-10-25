@@ -113,7 +113,7 @@ int spl_board_init_f(void) {
   ddr_init_training();
   /* Clear the BSS. */
   memset(__bss_start, 0, (ulong)&__bss_end - (ulong)__bss_start);
-
+  detect_ddr_size();
   ret += k230_img_load_boot_sys(CONFIG_UBOOT_SPL_BOOT_IMG_TYPE);
   if (ret) {
     printf("uboot boot failed %d\n", ret);
