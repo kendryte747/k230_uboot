@@ -1,0 +1,22 @@
+if TARGET_K230D_CANMV_ATK_DNK230D
+
+    config SYS_CPU
+        default "k230"
+
+    config SYS_VENDOR
+        default "kendryte"
+
+    config SYS_BOARD
+        default "k230d_canmv_atk_dnk230d"
+
+    config SYS_CONFIG_NAME
+        default "k230_common"
+
+    config BOARD_SPECIFIC_OPTIONS
+        def_bool y
+        select KENDRYTE_K230
+
+    config K230D_SIP_LPDDR4_2667
+        def_bool y
+
+endif
