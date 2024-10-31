@@ -16,7 +16,7 @@ if TARGET_K230D_CANMV_BPI_ZERO
         def_bool y
         select KENDRYTE_K230
 
-	choice
+	choice DDR_TYPE
 		prompt "DDR Type And Frequency"
 		default K230D_SIP_LPDDR4_2667
 
