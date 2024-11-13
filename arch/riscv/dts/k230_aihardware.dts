@@ -23,6 +23,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /dts-v1/;
+#include "../../../board/kendryte/common/sdk_autoconf.h"
+#ifndef CONFIG_MEM_TOTAL_SIZE
+#define CONFIG_MEM_TOTAL_SIZE 0x20000000
+#endif
 
 #include <dt-bindings/pinctrl/k230-pinctrl.h>
 
@@ -43,7 +47,7 @@
 	memory@0 {
 		device_type = "memory";
 		reg = <
-				0x0 0 0x0 0x20000000
+				0x0 0 0x0 CONFIG_MEM_TOTAL_SIZE
 			  >;
 	};
 };
@@ -91,9 +95,9 @@
 
 		// JP1-PIN12 PWM2/3/4
 		(IO7 ) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
-		// JP1-PIN13 
+		// JP1-PIN13
 		(IO8 ) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
-		// JP1-PIN14 
+		// JP1-PIN14
 		(IO9 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST )
 
 		// JP1-PIN15 3D_CTRL
