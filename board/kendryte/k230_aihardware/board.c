@@ -36,14 +36,6 @@ int board_early_init_f(void) {
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void) {
-#define USB_IDPULLUP0 (1 << 4)
-#define USB_DMPULLDOWN0 (1 << 8)
-#define USB_DPPULLDOWN0 (1 << 9)
-
-  u32 usb1_test_ctl3 = readl((void *)USB1_TEST_CTL3);
-  usb1_test_ctl3 |= USB_IDPULLUP0;
-  writel(usb1_test_ctl3, (void *)USB1_TEST_CTL3);
-
   return 0;
 }
 #endif

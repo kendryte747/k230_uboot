@@ -56,19 +56,6 @@ int board_late_init(void) {
     writel(wifi_regon_gpio1_data, (void *)(GPIO_BASE_ADDR0 + 0x0));
   }
 
-#define USB_IDPULLUP0 (1 << 4)
-#define USB_DMPULLDOWN0 (1 << 8)
-#define USB_DPPULLDOWN0 (1 << 9)
-
-  u32 usb0_test_ctl3 = readl((void *)USB0_TEST_CTL3);
-  u32 usb1_test_ctl3 = readl((void *)USB1_TEST_CTL3);
-
-  usb0_test_ctl3 |= USB_IDPULLUP0;
-  usb1_test_ctl3 |= USB_IDPULLUP0;
-
-  writel(usb0_test_ctl3, (void *)USB0_TEST_CTL3);
-  writel(usb1_test_ctl3, (void *)USB1_TEST_CTL3);
-
   return 0;
 }
 #endif
