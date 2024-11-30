@@ -18,7 +18,8 @@ dtb-$(CONFIG_TARGET_K230_CANMV_V3P0) += k230_canmv_lckfb.dtb	# lckfb use same ta
 dtb-$(CONFIG_TARGET_K230_CANMV_01STUDIO) += k230_canmv_01studio.dtb
 dtb-$(CONFIG_TARGET_K230D_CANMV_BPI_ZERO) += k230d_canmv_bpi_zero.dtb
 dtb-$(CONFIG_TARGET_K230_CANMV_DONGSHANPI) += k230_canmv_dongshanpi.dtb
-dtb-$(CONFIG_BOARD_K230D_CANMV_ATK_DNK230D) += k230d_canmv_atk_dnk230d.dtb
+dtb-$(CONFIG_TARGET_K230D_CANMV_ATK_DNK230D) += k230d_canmv_atk_dnk230d.dtb
+dtb-$(CONFIG_TARGET_K230_EVB) += k230_evb.dtb
 
 
 include $(srctree)/scripts/Makefile.dts
