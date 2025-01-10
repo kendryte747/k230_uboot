@@ -83,6 +83,12 @@ void harts_early_init(void)
 
     writel(0x0, (volatile void __iomem *)(SYSCTL_PWR_BASE_ADDR + 0x158));
 
+    writel(0x33881B, (volatile void __iomem *)0x915850b0);
+    writel(0x5e66a3, (volatile void __iomem *)0x915850b4);
+
+    writel(0x33881B, (volatile void __iomem *)0x915850b8);
+    writel(0x5e66a3, (volatile void __iomem *)0x915850bC);
+
 #ifndef CONFIG_KBURN_OTP
 	csr_write(pmpaddr0, 0x24484dff);
 	csr_write(pmpaddr1, 0x244851ff);
